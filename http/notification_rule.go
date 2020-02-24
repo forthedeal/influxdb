@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/influxdata/httprouter"
 	"github.com/influxdata/influxdb"
 	pctx "github.com/influxdata/influxdb/context"
+	"github.com/influxdata/influxdb/kit/tracing"
 	"github.com/influxdata/influxdb/notification/rule"
+	"github.com/influxdata/influxdb/pkg/httpc"
 	"go.uber.org/zap"
 )
 
@@ -699,4 +702,58 @@ func (h *NotificationRuleHandler) handleDeleteNotificationRule(w http.ResponseWr
 	h.log.Debug("Notification rule deleted", zap.String("notificationRuleID", fmt.Sprint(i)))
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+/*
+type NotificationRuleStore interface {
+	// UserResourceMappingService must be part of all NotificationRuleStore service,
+	// for create, search, delete.
+	UserResourceMappingService
+	// OrganizationService is needed for search filter
+	OrganizationService
+
+	// FindNotificationRuleByID returns a single notification rule by ID.
+	FindNotificationRuleByID(ctx context.Context, id ID) (NotificationRule, error)
+
+	// FindNotificationRules returns a list of notification rules that match filter and the total count of matching notification rules.
+	// Additional options provide pagination & sorting.
+	FindNotificationRules(ctx context.Context, filter NotificationRuleFilter, opt ...FindOptions) ([]NotificationRule, int, error)
+
+	// CreateNotificationRule creates a new notification rule and sets b.ID with the new identifier.
+	CreateNotificationRule(ctx context.Context, nr NotificationRuleCreate, userID ID) error
+
+	// UpdateNotificationRuleUpdateNotificationRule updates a single notification rule.
+	// Returns the new notification rule after update.
+	UpdateNotificationRule(ctx context.Context, id ID, nr NotificationRuleCreate, userID ID) (NotificationRule, error)
+
+	// PatchNotificationRule updates a single  notification rule with changeset.
+	// Returns the new notification rule state after update.
+	PatchNotificationRule(ctx context.Context, id ID, upd NotificationRuleUpdate) (NotificationRule, error)
+
+	// DeleteNotificationRule removes a notification rule by ID.
+	DeleteNotificationRule(ctx context.Context, id ID) error
+}
+*/
+
+type NotificationRuleStore struct {
+	Client *httpc.Client
+	UserResourceMappingService
+	OrganizationService
+}
+
+func (s *NotificationRuleStore) FindNotificationRuleByID(ctx context.Context, id influxdb.ID) (influxdb.NotificationRule, error) {
+	span, _ := tracing.StartSpanFromContext(ctx)
+	defer span.Finish()
+
+	var rs notificationRuleResponse
+	err := s.Client.
+		Get(getNotificationRulesIDPath(id)).
+		DecodeJSON(&rs).
+		Do(ctx)
+
+	return nil, err
+}
+
+func getNotificationRulesIDPath(id influxdb.ID) string {
+	return path.Join(prefixNotificationRules, id.String())
 }

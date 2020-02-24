@@ -45,6 +45,7 @@ type Service struct {
 	*TaskService
 	*DashboardService
 	*OrganizationService
+	*NotificationRuleStore
 	*UserService
 	*VariableService
 	*WriteService
@@ -66,12 +67,13 @@ func NewService(addr, token string) (*Service, error) {
 			Addr:  addr,
 			Token: token,
 		},
-		BucketService:       &BucketService{Client: httpClient},
-		TaskService:         &TaskService{Client: httpClient},
-		DashboardService:    &DashboardService{Client: httpClient},
-		OrganizationService: &OrganizationService{Client: httpClient},
-		UserService:         &UserService{Client: httpClient},
-		VariableService:     &VariableService{Client: httpClient},
+		BucketService:         &BucketService{Client: httpClient},
+		TaskService:           &TaskService{Client: httpClient},
+		DashboardService:      &DashboardService{Client: httpClient},
+		OrganizationService:   &OrganizationService{Client: httpClient},
+		NotificationRuleStore: &NotificationRuleStore{Client: httpClient},
+		UserService:           &UserService{Client: httpClient},
+		VariableService:       &VariableService{Client: httpClient},
 		WriteService: &WriteService{
 			Addr:  addr,
 			Token: token,
