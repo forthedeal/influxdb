@@ -12,7 +12,6 @@ import (
 	"github.com/influxdata/httprouter"
 	"github.com/influxdata/influxdb"
 	pctx "github.com/influxdata/influxdb/context"
-	"github.com/influxdata/influxdb/kit/tracing"
 	"github.com/influxdata/influxdb/notification/rule"
 	"github.com/influxdata/influxdb/pkg/httpc"
 	"go.uber.org/zap"
@@ -741,17 +740,31 @@ type NotificationRuleStore struct {
 	OrganizationService
 }
 
-func (s *NotificationRuleStore) FindNotificationRuleByID(ctx context.Context, id influxdb.ID) (influxdb.NotificationRule, error) {
-	span, _ := tracing.StartSpanFromContext(ctx)
-	defer span.Finish()
+type NotificationRule struct {
+	ID influxdb.ID
+}
 
-	var rs notificationRuleResponse
+type NotificationRuleCreate struct {
+}
+
+func (s *NotificationRuleStore) CreateNotificationRule(ctx context.Context, nr NotificationRuleCreate, userID influxdb.ID) (*NotificationRule, error) {
+	var n NotificationRule
 	err := s.Client.
-		Get(getNotificationRulesIDPath(id)).
-		DecodeJSON(&rs).
+		PostJSON(nr, prefixNotificationRules).
+		DecodeJSON(&n).
 		Do(ctx)
 
-	return nil, err
+	return &n, err
+}
+
+func (s *NotificationRuleStore) FindNotificationRuleByID(ctx context.Context, id influxdb.ID) (*NotificationRule, error) {
+	var n NotificationRule
+	err := s.Client.
+		Get(getNotificationRulesIDPath(id)).
+		DecodeJSON(&n).
+		Do(ctx)
+
+	return &n, err
 }
 
 func getNotificationRulesIDPath(id influxdb.ID) string {
